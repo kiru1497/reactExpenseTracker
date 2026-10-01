@@ -98,15 +98,26 @@ export default function Login() {
         </button>
       </form>
 
-      <p className="mt-7 text-center text-sm text-slate-500">
-        New user?{" "}
+      <div className="mt-7 flex flex-col items-center justify-center gap-3 text-sm sm:flex-row sm:gap-5">
+        <p className="text-slate-500">
+          New user?{" "}
+          <Link
+            to="/signup"
+            className="font-bold text-emerald-700 underline-offset-4 hover:underline"
+          >
+            Sign up
+          </Link>
+        </p>
+
+        <span className="hidden text-slate-300 sm:inline">|</span>
+
         <Link
-          to="/signup"
-          className="font-bold text-emerald-700 underline-offset-4 hover:underline"
+          to="/forgot-password"
+          className="font-semibold text-emerald-700 underline-offset-4 transition hover:underline"
         >
-          Sign up
+          Forgot Password?
         </Link>
-      </p>
+      </div>
     </AuthLayout>
   );
 }

@@ -7,26 +7,27 @@ function getFirebaseError(errorCode) {
     INVALID_ID_TOKEN: "Your session has expired. Please log in again.",
     USER_NOT_FOUND: "This account could not be found.",
     USER_DISABLED: "This account has been disabled.",
-    EMAIL_NOT_FOUND: "The email address is not associated with an account.",
+    EMAIL_NOT_FOUND: "No account was found with this email address.",
     EXPIRED_OOB_CODE:
-      "This verification link has expired. Please request a new one.",
+      "This password reset link has expired. Please request a new one.",
     INVALID_OOB_CODE:
-      "This verification link is invalid or has already been used.",
+      "This password reset link is invalid or has already been used.",
     INVALID_CONTINUE_URI:
       "The redirect URL is invalid. Please check your Firebase configuration.",
     UNAUTHORIZED_DOMAIN: "This redirect domain is not authorized in Firebase.",
-    OPERATION_NOT_ALLOWED:
-      "This operation is not enabled for your Firebase project.",
+    OPERATION_NOT_ALLOWED: "Password reset is not enabled for this project.",
     TOO_MANY_ATTEMPTS_TRY_LATER:
       "Too many attempts. Please wait and try again.",
+    RESET_PASSWORD_EXCEED_LIMIT:
+      "The password reset limit has been reached. Try again later.",
     QUOTA_EXCEEDED:
       "The email sending limit has been reached. Try again later.",
     NETWORK_REQUEST_FAILED: "Network error. Check your internet connection.",
-    INVALID_EMAIL: "The email address is invalid.",
+    INVALID_EMAIL: "Please enter a valid email address.",
     INVALID_LOGIN_CREDENTIALS: "Invalid email or password.",
     INVALID_PASSWORD: "The password is incorrect.",
     EMAIL_EXISTS: "This email is already registered.",
-    WEAK_PASSWORD: "Password should be at least 6 characters long.",
+    WEAK_PASSWORD: "Your password must contain at least 6 characters.",
   };
 
   return errors[errorCode] || "Something went wrong. Please try again.";
@@ -121,4 +122,40 @@ export async function getAccountInfo(idToken) {
   }
 
   return data.users[0];
+}
+
+// Send password reset email
+export async function sendPasswordResetEmail(email) {
+  const normalizedEmail = email?.trim();
+
+  if (!normalizedEmail) {
+    throw new Error("Please enter your email address.");
+  }
+
+  return firebaseRequest("accounts:sendOobCode", {
+    requestType: "PASSWORD_RESET",
+    email: normalizedEmail,
+  });
+}
+
+// Confirm password reset
+export async function confirmPasswordReset(oobCode, newPassword) {
+  if (!oobCode) {
+    throw new Error(
+      "Password reset code is missing. Please open the link from your email.",
+    );
+  }
+
+  if (!newPassword) {
+    throw new Error("Please enter your new password.");
+  }
+
+  if (newPassword.length < 6) {
+    throw new Error("Password must be at least 6 characters long.");
+  }
+
+  return firebaseRequest("accounts:resetPassword", {
+    oobCode,
+    newPassword,
+  });
 }
