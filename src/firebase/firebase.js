@@ -1,87 +1,124 @@
 const API_KEY = import.meta.env.VITE_FIREBASE_API_KEY;
 
-const AUTH_BASE = "https://identitytoolkit.googleapis.com/v1/accounts";
+const AUTH_URL = "https://identitytoolkit.googleapis.com/v1";
 
-async function authRequest(endpoint, payload) {
+function getFirebaseError(errorCode) {
+  const errors = {
+    INVALID_ID_TOKEN: "Your session has expired. Please log in again.",
+    USER_NOT_FOUND: "This account could not be found.",
+    USER_DISABLED: "This account has been disabled.",
+    EMAIL_NOT_FOUND: "The email address is not associated with an account.",
+    EXPIRED_OOB_CODE:
+      "This verification link has expired. Please request a new one.",
+    INVALID_OOB_CODE:
+      "This verification link is invalid or has already been used.",
+    INVALID_CONTINUE_URI:
+      "The redirect URL is invalid. Please check your Firebase configuration.",
+    UNAUTHORIZED_DOMAIN: "This redirect domain is not authorized in Firebase.",
+    OPERATION_NOT_ALLOWED:
+      "This operation is not enabled for your Firebase project.",
+    TOO_MANY_ATTEMPTS_TRY_LATER:
+      "Too many attempts. Please wait and try again.",
+    QUOTA_EXCEEDED:
+      "The email sending limit has been reached. Try again later.",
+    NETWORK_REQUEST_FAILED: "Network error. Check your internet connection.",
+    INVALID_EMAIL: "The email address is invalid.",
+    INVALID_LOGIN_CREDENTIALS: "Invalid email or password.",
+    INVALID_PASSWORD: "The password is incorrect.",
+    EMAIL_EXISTS: "This email is already registered.",
+    WEAK_PASSWORD: "Password should be at least 6 characters long.",
+  };
+
+  return errors[errorCode] || "Something went wrong. Please try again.";
+}
+
+async function firebaseRequest(endpoint, body) {
   if (!API_KEY) {
-    throw new Error("Firebase is not configured. Check your .env file.");
+    throw new Error("Firebase API key is missing. Check your .env file.");
   }
 
   let response;
 
   try {
-    response = await fetch(`${AUTH_BASE}:${endpoint}?key=${API_KEY}`, {
+    response = await fetch(`${AUTH_URL}/${endpoint}?key=${API_KEY}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(body),
     });
   } catch {
-    throw new Error("Unable to connect. Check your internet connection.");
+    throw new Error(
+      "Unable to connect to Firebase. Check your internet connection.",
+    );
   }
 
   const data = await response.json();
 
   if (!response.ok) {
-    const code = data?.error?.message;
+    const code =
+      data?.error?.message?.split(" : ")[0] ||
+      data?.error?.message ||
+      "UNKNOWN_ERROR";
 
-    const errorMessages = {
-      EMAIL_EXISTS: "An account with this email already exists.",
-
-      INVALID_EMAIL: "Enter a valid email address.",
-
-      INVALID_LOGIN_CREDENTIALS:
-        "Incorrect email or password. Please try again.",
-
-      EMAIL_NOT_FOUND: "No account was found with this email.",
-
-      INVALID_PASSWORD: "Incorrect email or password. Please try again.",
-
-      USER_DISABLED: "This account has been disabled.",
-
-      TOO_MANY_ATTEMPTS_TRY_LATER: "Too many attempts. Please try again later.",
-
-      WEAK_PASSWORD: "Choose a stronger password.",
-
-      OPERATION_NOT_ALLOWED: "Email/password sign-in is not enabled.",
-
-      API_KEY_INVALID: "The Firebase API key is invalid.",
-    };
-
-    throw new Error(
-      errorMessages[code] || "Authentication failed. Please try again.",
-    );
+    throw new Error(getFirebaseError(code));
   }
 
   return data;
 }
 
-export async function signUpWithEmail({
-  email,
-  password,
-  firstName,
-  lastName,
-}) {
-  const account = await authRequest("signUp", {
+// Sign in with email and password
+export async function signInWithEmail(email, password) {
+  if (!email || !password) {
+    throw new Error("Email and password are required.");
+  }
+
+  return firebaseRequest("accounts:signInWithPassword", {
     email,
     password,
     returnSecureToken: true,
   });
-
-  await authRequest("update", {
-    idToken: account.idToken,
-    displayName: `${firstName} ${lastName}`.trim(),
-    returnSecureToken: true,
-  });
-
-  return account;
 }
 
-export async function signInWithEmail({ email, password }) {
-  return authRequest("signInWithPassword", {
+// Sign up with email and password
+export async function signUpWithEmail(email, password) {
+  if (!email || !password) {
+    throw new Error("Email and password are required.");
+  }
+
+  return firebaseRequest("accounts:signUp", {
     email,
     password,
     returnSecureToken: true,
   });
+}
+
+// Send email verification
+export async function sendVerificationEmail(idToken) {
+  if (!idToken) {
+    throw new Error("You must log in before requesting email verification.");
+  }
+
+  const continueUrl = `${window.location.origin}/home?verified=1`;
+
+  return firebaseRequest("accounts:sendOobCode", {
+    requestType: "VERIFY_EMAIL",
+    idToken,
+    continueUrl,
+  });
+}
+
+// Retrieve account information
+export async function getAccountInfo(idToken) {
+  if (!idToken) {
+    throw new Error("Authentication token is missing.");
+  }
+
+  const data = await firebaseRequest("accounts:lookup", { idToken });
+
+  if (!data.users || data.users.length === 0) {
+    throw new Error("Unable to retrieve account information.");
+  }
+
+  return data.users[0];
 }

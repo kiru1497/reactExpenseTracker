@@ -47,7 +47,7 @@ export default function Signup() {
     setLoading(true);
 
     try {
-      await signUpWithEmail(form);
+      await signUpWithEmail(form.email.trim(), form.password);
 
       navigate("/login", {
         replace: true,

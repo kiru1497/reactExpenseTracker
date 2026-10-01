@@ -34,10 +34,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const result = await signInWithEmail({
-        email: email.trim(),
-        password,
-      });
+      const result = await signInWithEmail(email.trim(), password);
 
       login(result);
 
