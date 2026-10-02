@@ -38,7 +38,7 @@ export default function Login() {
 
       login(result);
 
-      navigate("/home", {
+      navigate("/expenses", {
         replace: true,
       });
     } catch (err) {

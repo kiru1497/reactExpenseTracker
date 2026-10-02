@@ -1,11 +1,8 @@
 import { useEffect, useState } from "react";
-
-import { LogOut, Wallet } from "lucide-react";
-
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { LogOut, Wallet, ArrowRight } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
-
 import { getAccountInfo } from "../firebase/firebase";
 
 import VerifyEmailModal from "../components/UI/VerifyEmailModal";
@@ -15,15 +12,11 @@ export default function Home() {
   const { user, token, logout } = useAuth();
 
   const navigate = useNavigate();
-
   const [searchParams] = useSearchParams();
 
   const [emailVerified, setEmailVerified] = useState(false);
-
   const [checking, setChecking] = useState(true);
-
   const [notice, setNotice] = useState("");
-
   const [verificationError, setVerificationError] = useState("");
 
   const returnedFromVerification = searchParams.get("verified") === "1";
@@ -102,6 +95,15 @@ export default function Home() {
           <p className="mt-4 text-slate-500">
             Hello, {displayName}. Your finance dashboard will live here.
           </p>
+
+          {/* View Expenses Button */}
+          <Link
+            to="/expenses"
+            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-[#176b45] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/10 transition hover:bg-[#125638]"
+          >
+            View Expenses
+            <ArrowRight size={17} />
+          </Link>
 
           {checking && (
             <p className="mt-5 text-sm text-slate-400">

@@ -1,4 +1,5 @@
 const API_KEY = import.meta.env.VITE_FIREBASE_API_KEY;
+const DATABASE_URL = import.meta.env.VITE_FIREBASE_DATABASE_URL;
 
 const AUTH_URL = "https://identitytoolkit.googleapis.com/v1";
 
@@ -100,7 +101,7 @@ export async function sendVerificationEmail(idToken) {
     throw new Error("You must log in before requesting email verification.");
   }
 
-  const continueUrl = `${window.location.origin}/home?verified=1`;
+  const continueUrl = `${window.location.origin}/dashboard?verified=1`;
 
   return firebaseRequest("accounts:sendOobCode", {
     requestType: "VERIFY_EMAIL",
@@ -158,4 +159,131 @@ export async function confirmPasswordReset(oobCode, newPassword) {
     oobCode,
     newPassword,
   });
+}
+
+// -----------------------------
+// Realtime Database operations
+// -----------------------------
+
+function getDatabaseUrl(path, idToken) {
+  if (!DATABASE_URL) {
+    throw new Error("Firebase database URL is missing. Check your .env file.");
+  }
+
+  if (!idToken) {
+    throw new Error("Authentication token is missing. Please log in again.");
+  }
+
+  const baseUrl = DATABASE_URL.replace(/\/+$/, "");
+  const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+
+  return `${baseUrl}/${encodedPath}.json?auth=${encodeURIComponent(idToken)}`;
+}
+
+async function databaseRequest(path, idToken, method = "GET", body) {
+  const url = getDatabaseUrl(path, idToken);
+
+  let response;
+
+  try {
+    response = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    });
+  } catch {
+    throw new Error(
+      "Unable to connect to Firebase. Check your internet connection.",
+    );
+  }
+
+  let data;
+
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    const errorCode =
+      typeof data?.error === "string"
+        ? data.error
+        : data?.error?.message || "UNKNOWN_ERROR";
+
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(
+        "Access denied. Your session may have expired, or database rules may need checking.",
+      );
+    }
+
+    throw new Error(`Database request failed: ${errorCode}`);
+  }
+
+  return data;
+}
+
+// Fetch all expenses belonging to the current user
+export async function getExpenses(uid, idToken) {
+  if (!uid) {
+    throw new Error("User ID is missing.");
+  }
+
+  const data = await databaseRequest(`expenses/${uid}`, idToken, "GET");
+
+  if (!data) return [];
+
+  return Object.entries(data).map(([id, expense]) => ({
+    id,
+    ...expense,
+  }));
+}
+
+// Add a new expense
+export async function addExpense(uid, idToken, expense) {
+  if (!uid) {
+    throw new Error("User ID is missing.");
+  }
+
+  const result = await databaseRequest(
+    `expenses/${uid}`,
+    idToken,
+    "POST",
+    expense,
+  );
+
+  return {
+    id: result.name,
+    ...expense,
+  };
+}
+
+// Update an existing expense
+export async function updateExpense(uid, idToken, expenseId, expense) {
+  if (!uid || !expenseId) {
+    throw new Error("User ID or expense ID is missing.");
+  }
+
+  await databaseRequest(
+    `expenses/${uid}/${expenseId}`,
+    idToken,
+    "PUT",
+    expense,
+  );
+
+  return {
+    id: expenseId,
+    ...expense,
+  };
+}
+
+// Delete an expense
+export async function deleteExpense(uid, idToken, expenseId) {
+  if (!uid || !expenseId) {
+    throw new Error("User ID or expense ID is missing.");
+  }
+
+  return databaseRequest(`expenses/${uid}/${expenseId}`, idToken, "DELETE");
 }
