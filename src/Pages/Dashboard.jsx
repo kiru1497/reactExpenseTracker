@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { LogOut, Wallet } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 
-import { useAuth } from "../context/AuthContext";
+import { logout } from "../features/auth/authSlice";
+import { clearExpenses } from "../features/expenses/expensesSlice";
+
 import { getAccountInfo } from "../firebase/firebase";
 
 import ExpenseSidebar from "../components/Expenses/ExpenseSidebar";
@@ -10,7 +13,10 @@ import VerifyEmailModal from "../components/UI/VerifyEmailModal";
 import Alert from "../components/UI/Alert";
 
 export default function Dashboard() {
-  const { user, token, logout } = useAuth();
+  const dispatch = useDispatch();
+
+  const user = useSelector((state) => state.auth.user);
+  const token = useSelector((state) => state.auth.token);
 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -68,7 +74,9 @@ export default function Dashboard() {
   }, [token, returnedFromVerification]);
 
   function handleLogout() {
-    logout();
+    dispatch(logout());
+    dispatch(clearExpenses());
+
     navigate("/login", { replace: true });
   }
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { LoaderCircle } from "lucide-react";
 
 import ExpenseSidebar from "../components/Expenses/ExpenseSidebar";
@@ -7,71 +8,45 @@ import ExpenseSummary from "../components/Expenses/ExpenseSummary";
 import ExpenseTable from "../components/Expenses/ExpenseTable";
 import ExpenseModal from "../components/UI/ExpenseModal";
 
-import { useAuth } from "../context/AuthContext";
+import {
+  fetchExpenses,
+  createExpense,
+  editExpense,
+  removeExpense,
+  clearExpenseError,
+} from "../features/expenses/expensesSlice";
 
 import {
-  getExpenses,
-  addExpense,
-  updateExpense,
-  deleteExpense,
-} from "../firebase/firebase";
+  selectExpenses,
+  selectExpenseTotal,
+  selectExpenseCount,
+  selectShouldShowPremium,
+} from "../features/expenses/expensesSelectors";
 
 export default function Expenses() {
-  const { user, token } = useAuth();
+  const dispatch = useDispatch();
 
-  // Firebase Authentication returns localId for the user's UID.
-  const uid = user?.uid || user?.localId;
+  const expenses = useSelector(selectExpenses);
+  const total = useSelector(selectExpenseTotal);
+  const count = useSelector(selectExpenseCount);
+  const showPremium = useSelector(selectShouldShowPremium);
 
-  const [expenses, setExpenses] = useState([]);
+  const loading = useSelector((state) => state.expenses.loading);
+
+  const saving = useSelector((state) => state.expenses.saving);
+
+  const deletingIds = useSelector((state) => state.expenses.deletingIds);
+
+  const error = useSelector((state) => state.expenses.error);
+
   const [search, setSearch] = useState("");
-
   const [modalOpen, setModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
-
-  const [error, setError] = useState("");
-
-  // Fetch expenses from Firebase when the page loads
   useEffect(() => {
-    let active = true;
+    dispatch(fetchExpenses());
+  }, [dispatch]);
 
-    async function loadExpenses() {
-      setLoading(true);
-      setError("");
-
-      try {
-        const data = await getExpenses(uid, token);
-
-        if (active) {
-          setExpenses(data);
-        }
-      } catch (err) {
-        if (active) {
-          setError(err.message || "Unable to load your expenses.");
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    }
-
-    if (uid && token) {
-      loadExpenses();
-    } else {
-      setLoading(false);
-      setError("Please log in to view your expenses.");
-    }
-
-    return () => {
-      active = false;
-    };
-  }, [uid, token]);
-
-  // Search and sort
   const filteredExpenses = useMemo(() => {
     const query = search.trim().toLowerCase();
 
@@ -85,22 +60,14 @@ export default function Expenses() {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [expenses, search]);
 
-  // Summary
-  const total = useMemo(
-    () =>
-      expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0),
-    [expenses],
-  );
-
-  // Modal
   function openAddModal() {
-    setError("");
+    dispatch(clearExpenseError());
     setEditingExpense(null);
     setModalOpen(true);
   }
 
   function openEditModal(expense) {
-    setError("");
+    dispatch(clearExpenseError());
     setEditingExpense(expense);
     setModalOpen(true);
   }
@@ -112,75 +79,53 @@ export default function Expenses() {
     setEditingExpense(null);
   }
 
-  // Add or edit
   async function handleSaveExpense(data) {
-    if (saving) return;
-
-    setSaving(true);
-    setError("");
+    const expenseData = {
+      amount: Number(data.amount),
+      description: data.description.trim(),
+      category: data.category,
+    };
 
     try {
       if (editingExpense) {
-        const updatedData = {
-          amount: Number(data.amount),
-          description: data.description.trim(),
-          category: data.category,
-          date: editingExpense.date,
-        };
-
-        const updatedExpense = await updateExpense(
-          uid,
-          token,
-          editingExpense.id,
-          updatedData,
-        );
-
-        setExpenses((prev) =>
-          prev.map((expense) =>
-            expense.id === editingExpense.id ? updatedExpense : expense,
-          ),
-        );
+        await dispatch(
+          editExpense({
+            id: editingExpense.id,
+            expense: {
+              ...expenseData,
+              date: editingExpense.date,
+            },
+          }),
+        ).unwrap();
       } else {
-        const newExpenseData = {
-          amount: Number(data.amount),
-          description: data.description.trim(),
-          category: data.category,
-          date: new Date().toISOString(),
-        };
-
-        const newExpense = await addExpense(uid, token, newExpenseData);
-
-        setExpenses((prev) => [newExpense, ...prev]);
+        await dispatch(
+          createExpense({
+            ...expenseData,
+            date: new Date().toISOString(),
+          }),
+        ).unwrap();
       }
 
       setModalOpen(false);
       setEditingExpense(null);
     } catch (err) {
-      setError(err.message || "Unable to save the expense.");
-    } finally {
-      setSaving(false);
+      throw new Error(
+        typeof err === "string" ? err : "Unable to save expense.",
+      );
     }
   }
 
-  // Delete
   async function handleDeleteExpense(id) {
     const confirmed = window.confirm(
       "Are you sure you want to delete this expense?",
     );
 
-    if (!confirmed || deletingId) return;
-
-    setDeletingId(id);
-    setError("");
+    if (!confirmed || deletingIds.length > 0) return;
 
     try {
-      await deleteExpense(uid, token, id);
-
-      setExpenses((prev) => prev.filter((expense) => expense.id !== id));
-    } catch (err) {
-      setError(err.message || "Unable to delete the expense.");
-    } finally {
-      setDeletingId(null);
+      await dispatch(removeExpense(id)).unwrap();
+    } catch {
+      // Redux stores the API error for display.
     }
   }
 
@@ -228,13 +173,17 @@ export default function Expenses() {
             </div>
           ) : (
             <>
-              <ExpenseSummary total={total} count={expenses.length} />
+              <ExpenseSummary
+                total={total}
+                count={count}
+                showPremium={showPremium}
+              />
 
               <ExpenseTable
                 expenses={filteredExpenses}
                 onEdit={openEditModal}
                 onDelete={handleDeleteExpense}
-                deletingId={deletingId}
+                deletingId={deletingIds}
               />
             </>
           )}

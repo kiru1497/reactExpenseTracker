@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import {
   Wallet,
   LayoutDashboard,
@@ -9,7 +10,8 @@ import {
   Trophy,
 } from "lucide-react";
 
-import { useAuth } from "../../context/AuthContext";
+import { logout } from "../../features/auth/authSlice";
+import { clearExpenses } from "../../features/expenses/expensesSlice";
 
 const navigation = [
   {
@@ -25,11 +27,13 @@ const navigation = [
 ];
 
 export default function ExpenseSidebar() {
-  const { logout } = useAuth();
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
   function handleLogout() {
-    logout();
+    dispatch(logout());
+    dispatch(clearExpenses());
+
     navigate("/login", { replace: true });
   }
 

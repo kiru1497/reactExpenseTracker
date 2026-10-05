@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, LoaderCircle } from "lucide-react";
+import { useDispatch } from "react-redux";
 
 import AuthLayout from "../components/UI/AuthLayout";
 import FormField from "../components/UI/FormField";
 import Alert from "../components/UI/Alert";
 
 import { signInWithEmail } from "../firebase/firebase";
-import { useAuth } from "../context/AuthContext";
+import { login } from "../features/auth/authSlice";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -16,7 +17,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { login } = useAuth();
+  const dispatch = useDispatch();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -36,11 +37,9 @@ export default function Login() {
     try {
       const result = await signInWithEmail(email.trim(), password);
 
-      login(result);
+      dispatch(login(result));
 
-      navigate("/expenses", {
-        replace: true,
-      });
+      navigate("/expenses", { replace: true });
     } catch (err) {
       setError(err.message || "Login failed. Please try again.");
     } finally {
