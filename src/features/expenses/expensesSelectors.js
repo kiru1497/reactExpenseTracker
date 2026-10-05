@@ -13,5 +13,5 @@ export const selectExpenseCount = createSelector(
 
 export const selectShouldShowPremium = createSelector(
   [selectExpenseTotal],
-  (total) => total > 10000,
+  (total) => total >= 10000,
 );

@@ -7,6 +7,7 @@ import ExpenseTopbar from "../components/Expenses/ExpenseTopbar";
 import ExpenseSummary from "../components/Expenses/ExpenseSummary";
 import ExpenseTable from "../components/Expenses/ExpenseTable";
 import ExpenseModal from "../components/UI/ExpenseModal";
+import PremiumControls from "../components/Expenses/PremiumControls";
 
 import {
   fetchExpenses,
@@ -30,6 +31,8 @@ export default function Expenses() {
   const total = useSelector(selectExpenseTotal);
   const count = useSelector(selectExpenseCount);
   const showPremium = useSelector(selectShouldShowPremium);
+
+  const premiumActivated = useSelector((state) => state.premium.activated);
 
   const loading = useSelector((state) => state.expenses.loading);
 
@@ -167,6 +170,7 @@ export default function Expenses() {
           {loading ? (
             <div className="flex min-h-64 items-center justify-center gap-3 text-emerald-700">
               <LoaderCircle size={24} className="animate-spin" />
+
               <span className="text-sm font-medium">
                 Loading your expenses...
               </span>
@@ -178,6 +182,8 @@ export default function Expenses() {
                 count={count}
                 showPremium={showPremium}
               />
+
+              {premiumActivated && <PremiumControls expenses={expenses} />}
 
               <ExpenseTable
                 expenses={filteredExpenses}

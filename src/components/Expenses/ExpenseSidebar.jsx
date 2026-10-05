@@ -12,6 +12,7 @@ import {
 
 import { logout } from "../../features/auth/authSlice";
 import { clearExpenses } from "../../features/expenses/expensesSlice";
+import { resetPremium } from "../../features/premium/premiumSlice";
 
 const navigation = [
   {
@@ -33,6 +34,7 @@ export default function ExpenseSidebar() {
   function handleLogout() {
     dispatch(logout());
     dispatch(clearExpenses());
+    dispatch(resetPremium());
 
     navigate("/login", { replace: true });
   }

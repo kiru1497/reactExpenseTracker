@@ -76,7 +76,7 @@ export default function Dashboard() {
   function handleLogout() {
     dispatch(logout());
     dispatch(clearExpenses());
-
+    dispatch(resetPremium());
     navigate("/login", { replace: true });
   }
 
