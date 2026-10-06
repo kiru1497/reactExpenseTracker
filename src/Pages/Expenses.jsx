@@ -76,7 +76,9 @@ export default function Expenses() {
   }
 
   function closeModal() {
-    if (saving) return;
+    if (saving) {
+      return;
+    }
 
     setModalOpen(false);
     setEditingExpense(null);
@@ -123,7 +125,9 @@ export default function Expenses() {
       "Are you sure you want to delete this expense?",
     );
 
-    if (!confirmed || deletingIds.length > 0) return;
+    if (!confirmed || deletingIds.length > 0) {
+      return;
+    }
 
     try {
       await dispatch(removeExpense(id)).unwrap();

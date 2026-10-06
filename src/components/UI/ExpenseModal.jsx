@@ -34,27 +34,32 @@ export default function ExpenseModal({
   const isEditing = Boolean(expense);
 
   useEffect(() => {
-    if (isOpen) {
-      setForm(
-        expense
-          ? {
-              amount: String(expense.amount),
-              description: expense.description,
-              category: expense.category,
-            }
-          : initialForm,
-      );
-      setError("");
+    if (!isOpen) {
+      return;
     }
+
+    setForm(
+      expense
+        ? {
+            amount: String(expense.amount),
+            description: expense.description,
+            category: expense.category,
+          }
+        : initialForm,
+    );
+
+    setError("");
   }, [isOpen, expense]);
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   function handleChange(event) {
     const { name, value } = event.target;
 
-    setForm((prev) => ({
-      ...prev,
+    setForm((previous) => ({
+      ...previous,
       [name]: value,
     }));
 
@@ -64,11 +69,16 @@ export default function ExpenseModal({
   async function handleSubmit(event) {
     event.preventDefault();
 
-    if (loading) return;
+    if (loading) {
+      return;
+    }
 
     const amount = Number(form.amount);
     const description = form.description.trim();
 
+    // Custom validation is deliberately used instead of the
+    // browser's native min validation so the user gets our
+    // application-specific error message.
     if (!form.amount || !Number.isFinite(amount) || amount <= 0) {
       setError("Enter a valid amount greater than zero.");
       return;
@@ -88,7 +98,7 @@ export default function ExpenseModal({
         category: form.category,
       });
     } catch (err) {
-      setError(err.message || "Failed to save expense. Please try again.");
+      setError(err?.message || "Failed to save expense. Please try again.");
     }
   }
 
@@ -136,7 +146,7 @@ export default function ExpenseModal({
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           <div>
             <label
               htmlFor="amount"
@@ -155,14 +165,13 @@ export default function ExpenseModal({
                 id="amount"
                 name="amount"
                 type="number"
-                min="0.01"
                 step="0.01"
                 value={form.amount}
                 onChange={handleChange}
                 placeholder="Enter amount"
                 disabled={loading}
+                aria-required="true"
                 className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-600/10 disabled:cursor-not-allowed disabled:opacity-60"
-                required
               />
             </div>
           </div>
@@ -184,8 +193,8 @@ export default function ExpenseModal({
               onChange={handleChange}
               placeholder="e.g. Monthly grocery shopping"
               disabled={loading}
+              aria-required="true"
               className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:ring-4 focus:ring-emerald-600/10 disabled:cursor-not-allowed disabled:opacity-60"
-              required
             />
           </div>
 

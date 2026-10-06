@@ -3,7 +3,10 @@ const DATABASE_URL = import.meta.env.VITE_FIREBASE_DATABASE_URL;
 
 const AUTH_URL = "https://identitytoolkit.googleapis.com/v1";
 
+// -----------------------------------------------------------------------------
 // Firebase error handler
+// -----------------------------------------------------------------------------
+
 export function getFirebaseError(code) {
   const errors = {
     EMAIL_EXISTS: "This email is already registered.",
@@ -26,7 +29,10 @@ export function getFirebaseError(code) {
   return errors[code] || "Something went wrong. Please try again.";
 }
 
-// Reusable Firebase Authentication request
+// -----------------------------------------------------------------------------
+// Firebase Authentication request
+// -----------------------------------------------------------------------------
+
 async function firebaseRequest(endpoint, body) {
   if (!API_KEY) {
     throw new Error("Firebase API key is missing.");
@@ -56,7 +62,10 @@ async function firebaseRequest(endpoint, body) {
   return data;
 }
 
-// Sign up
+// -----------------------------------------------------------------------------
+// Authentication
+// -----------------------------------------------------------------------------
+
 export async function signUpWithEmail(email, password) {
   return firebaseRequest("accounts:signUp", {
     email,
@@ -65,7 +74,6 @@ export async function signUpWithEmail(email, password) {
   });
 }
 
-// Sign in
 export async function signInWithEmail(email, password) {
   return firebaseRequest("accounts:signInWithPassword", {
     email,
@@ -74,7 +82,6 @@ export async function signInWithEmail(email, password) {
   });
 }
 
-// Get account information
 export async function getAccountInfo(idToken) {
   const data = await firebaseRequest("accounts:lookup", {
     idToken,
@@ -83,7 +90,6 @@ export async function getAccountInfo(idToken) {
   return data.users?.[0] ?? null;
 }
 
-// Send password reset email
 export async function sendPasswordResetEmail(email) {
   return firebaseRequest("accounts:sendOobCode", {
     requestType: "PASSWORD_RESET",
@@ -91,7 +97,6 @@ export async function sendPasswordResetEmail(email) {
   });
 }
 
-// Confirm password reset
 export async function confirmPasswordReset(oobCode, newPassword) {
   return firebaseRequest("accounts:resetPassword", {
     oobCode,
@@ -99,7 +104,6 @@ export async function confirmPasswordReset(oobCode, newPassword) {
   });
 }
 
-// Send email verification
 export async function sendVerificationEmail(idToken) {
   return firebaseRequest("accounts:sendOobCode", {
     requestType: "VERIFY_EMAIL",
@@ -107,7 +111,10 @@ export async function sendVerificationEmail(idToken) {
   });
 }
 
-// Database URL builder
+// -----------------------------------------------------------------------------
+// Firebase Realtime Database
+// -----------------------------------------------------------------------------
+
 function getDatabaseUrl(path, idToken) {
   if (!DATABASE_URL) {
     throw new Error("Firebase database URL is missing.");
@@ -124,7 +131,6 @@ function getDatabaseUrl(path, idToken) {
   return `${baseUrl}/${encodedPath}.json?auth=${encodeURIComponent(idToken)}`;
 }
 
-// Reusable Firebase Realtime Database request
 async function databaseRequest(path, idToken, method = "GET", body) {
   const url = getDatabaseUrl(path, idToken);
 
@@ -136,7 +142,11 @@ async function databaseRequest(path, idToken, method = "GET", body) {
       headers: {
         "Content-Type": "application/json",
       },
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      ...(body !== undefined
+        ? {
+            body: JSON.stringify(body),
+          }
+        : {}),
     });
   } catch {
     throw new Error("Unable to connect to Firebase.");
@@ -157,7 +167,10 @@ async function databaseRequest(path, idToken, method = "GET", body) {
   return data;
 }
 
-// Fetch expenses
+// -----------------------------------------------------------------------------
+// Expenses
+// -----------------------------------------------------------------------------
+
 export async function getExpenses(uid, idToken) {
   if (!uid) {
     throw new Error("User ID is missing.");
@@ -165,7 +178,9 @@ export async function getExpenses(uid, idToken) {
 
   const data = await databaseRequest(`expenses/${uid}`, idToken);
 
-  if (!data) return [];
+  if (!data) {
+    return [];
+  }
 
   return Object.entries(data).map(([id, expense]) => ({
     id,
@@ -173,7 +188,6 @@ export async function getExpenses(uid, idToken) {
   }));
 }
 
-// Add expense
 export async function addExpense(uid, idToken, expense) {
   if (!uid) {
     throw new Error("User ID is missing.");
@@ -192,7 +206,6 @@ export async function addExpense(uid, idToken, expense) {
   };
 }
 
-// Update expense
 export async function updateExpense(uid, idToken, expenseId, expense) {
   if (!uid || !expenseId) {
     throw new Error("User ID or expense ID is missing.");
@@ -211,7 +224,6 @@ export async function updateExpense(uid, idToken, expenseId, expense) {
   };
 }
 
-// Delete expense
 export async function deleteExpense(uid, idToken, expenseId) {
   if (!uid || !expenseId) {
     throw new Error("User ID or expense ID is missing.");

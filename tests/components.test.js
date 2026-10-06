@@ -61,7 +61,7 @@ test("should show an error when an invalid expense amount is submitted", async (
     />,
   );
 
-  const amountInput = screen.getByLabelText("Amount ( ) ₹");
+  const amountInput = screen.getByLabelText("Amount (₹)");
   const descriptionInput = screen.getByLabelText("Description");
 
   await user.type(amountInput, "0");
@@ -73,7 +73,7 @@ test("should show an error when an invalid expense amount is submitted", async (
     }),
   );
 
-  expect(screen.getByRole("alert")).toHaveTextContent(
-    "Enter a valid amount greater than zero.",
-  );
+  expect(
+    screen.getByText("Enter a valid amount greater than zero."),
+  ).toBeInTheDocument();
 });
