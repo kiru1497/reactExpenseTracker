@@ -1,14 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import {
-  Wallet,
-  LayoutDashboard,
-  ReceiptText,
-  LogOut,
-  ChartNoAxesCombined,
-  Sparkles,
-  Trophy,
-} from "lucide-react";
+import { Wallet, LayoutDashboard, ReceiptText, LogOut } from "lucide-react";
 
 import { logout } from "../../features/auth/authSlice";
 import { clearExpenses } from "../../features/expenses/expensesSlice";
@@ -69,23 +61,6 @@ export default function ExpenseSidebar() {
             {label}
           </NavLink>
         ))}
-
-        <div className="hidden border-t border-slate-100 pt-3 md:block">
-          <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-400">
-            <ChartNoAxesCombined size={19} />
-            Reports
-          </div>
-
-          <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-400">
-            <Sparkles size={19} />
-            Insights
-          </div>
-
-          <div className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm text-slate-400">
-            <Trophy size={19} />
-            Leaderboard
-          </div>
-        </div>
       </nav>
 
       <div className="mt-4 md:mt-auto md:border-t md:border-slate-100 md:pt-5">
