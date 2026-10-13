@@ -7,6 +7,7 @@ import ExpenseTopbar from "../components/Expenses/ExpenseTopbar";
 import ExpenseSummary from "../components/Expenses/ExpenseSummary";
 import ExpenseTable from "../components/Expenses/ExpenseTable";
 import ExpenseModal from "../components/UI/ExpenseModal";
+import AiExpenseModal from "../components/UI/AiExpenseModal";
 import PremiumControls from "../components/Expenses/PremiumControls";
 
 import {
@@ -43,7 +44,10 @@ export default function Expenses() {
   const error = useSelector((state) => state.expenses.error);
 
   const [search, setSearch] = useState("");
+
   const [modalOpen, setModalOpen] = useState(false);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+
   const [editingExpense, setEditingExpense] = useState(null);
 
   useEffect(() => {
@@ -65,12 +69,20 @@ export default function Expenses() {
 
   function openAddModal() {
     dispatch(clearExpenseError());
+
     setEditingExpense(null);
     setModalOpen(true);
   }
 
+  function openAiModal() {
+    dispatch(clearExpenseError());
+
+    setAiModalOpen(true);
+  }
+
   function openEditModal(expense) {
     dispatch(clearExpenseError());
+
     setEditingExpense(expense);
     setModalOpen(true);
   }
@@ -82,6 +94,14 @@ export default function Expenses() {
 
     setModalOpen(false);
     setEditingExpense(null);
+  }
+
+  function closeAiModal() {
+    if (saving) {
+      return;
+    }
+
+    setAiModalOpen(false);
   }
 
   async function handleSaveExpense(data) {
@@ -120,6 +140,25 @@ export default function Expenses() {
     }
   }
 
+  async function handleSaveAiExpense(expense) {
+    try {
+      await dispatch(
+        createExpense({
+          amount: Number(expense.amount),
+          description: expense.description.trim(),
+          category: expense.category,
+          date: new Date(`${expense.date}T00:00:00`).toISOString(),
+        }),
+      ).unwrap();
+
+      setAiModalOpen(false);
+    } catch (err) {
+      throw new Error(
+        typeof err === "string" ? err : "Unable to save AI-generated expense.",
+      );
+    }
+  }
+
   async function handleDeleteExpense(id) {
     const confirmed = window.confirm(
       "Are you sure you want to delete this expense?",
@@ -145,6 +184,7 @@ export default function Expenses() {
           search={search}
           setSearch={setSearch}
           onAddExpense={openAddModal}
+          onAddExpenseWithAI={openAiModal}
         />
 
         <div className="mx-auto max-w-[1500px] space-y-7 p-5 sm:p-8">
@@ -205,6 +245,13 @@ export default function Expenses() {
         onClose={closeModal}
         onSubmit={handleSaveExpense}
         expense={editingExpense}
+        loading={saving}
+      />
+
+      <AiExpenseModal
+        isOpen={aiModalOpen}
+        onClose={closeAiModal}
+        onConfirm={handleSaveAiExpense}
         loading={saving}
       />
     </div>

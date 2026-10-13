@@ -35,6 +35,11 @@ jest.mock("../src/firebase/firebase", () => ({
   deleteExpense: jest.fn(),
 }));
 
+jest.mock("../src/services/openRouter", () => ({
+  __esModule: true,
+  parseExpenseWithAI: jest.fn(),
+}));
+
 jest.mock("../src/components/Expenses/ExpenseSidebar", () => ({
   __esModule: true,
   default: () => <aside>Sidebar</aside>,
